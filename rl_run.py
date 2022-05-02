@@ -1,5 +1,6 @@
 from agent import MyAgent
-from game import Env, Game
+#from game import Env, Game
+from rl_game import Env, Game
 from animator import Animation
 
 import argparse
@@ -8,6 +9,47 @@ import sys
 from copy import deepcopy
 
 import numpy as np
+
+####
+import pickle
+i = 0
+
+class Args():
+    def __init__(self):
+        self.agents = ['p1', 'p2']
+        self.map = 'large'
+        self.goals = {'p1': (150, 125), 'p2': (100, 175)}
+        self.vis = False
+        self.eval = False
+        self.save = None
+
+def get_starts_rl(agents):
+    # initial states for agents
+    global i
+    # Round Number
+    if i > 10:
+        print('Program terminates')
+        return None, None, None
+    starts = {'p1': (173, 136), 'p2': (88, 185)}
+    print(f'Round No. : {i}')
+    p1_dict, p2_dict = import_data()
+    i += 1
+    return starts, p1_dict, p2_dict
+
+def import_data():
+    try:
+        f1 = open('./data/large_p1.txt', 'rb')
+        p1_dict = pickle.load(f1)
+        f1.close()
+        f2 = open('./data/large_p2.txt', 'rb')
+        p2_dict = pickle.load(f2)
+        f2.close()
+        return p1_dict, p2_dict
+    except:
+        print("import_data went wrong")
+
+
+####
 
 
 def parse_map_from_file(map_config):
@@ -43,6 +85,7 @@ def parse_goals(goals):
 
 
 def get_args():
+    """
     parser = argparse.ArgumentParser(
         description='Multi-Agent Path Finding Term Project.'
     )
@@ -62,11 +105,12 @@ def get_args():
                         help='Do evaluation')
 
     args = parser.parse_args()
-
+    """
+    args = Args()
     map_name = args.map
     args.map = parse_map_from_file(args.map)
 
-    args.goals = parse_goals(args.goals)
+    #args.goals = parse_goals(args.goals)
 
     return args, map_name
 
@@ -92,6 +136,8 @@ def get_starts(agents):
 
 if __name__ == '__main__':
     args, map_name = get_args()
+    max_score_p1 = 89.11819887429644
+    max_score_p2 = 88.74296435272045
 
     if not args.eval:
         show_args(args)
@@ -102,7 +148,7 @@ if __name__ == '__main__':
         for name in args.agents:
             agents.append(MyAgent(name, deepcopy(env)))
 
-        starts = get_starts(args.agents)
+        starts, large_p1, large_p2 = get_starts_rl(args.agents)
 
         while starts:
             print('\nSTARTS:')
@@ -110,8 +156,10 @@ if __name__ == '__main__':
             print('-------------\n')
 
             game = Game(starts, agents, deepcopy(env))
-            history, score = game.run()
+            history, score, max_score_p1, max_score_p2 = game.run(max_score_p1, max_score_p2, large_p1, large_p2)
             print(f'==> Score: {score}\n')
+            print(f'==> p1 Max Score: {max_score_p1}\n')
+            print(f'==> p2 Max Score: {max_score_p2}\n')
 
             if args.vis:
                 animator = Animation(args.agents,
@@ -124,7 +172,7 @@ if __name__ == '__main__':
                     animator.save(file_name=f'recording/{args.save}',
                                   speed=100)
 
-            starts = get_starts(args.agents)
+            starts, large_p1, large_p2 = get_starts_rl(args.agents)
 
     else:
         stdout_fd = sys.stdout

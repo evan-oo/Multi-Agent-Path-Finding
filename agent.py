@@ -1,5 +1,8 @@
 from base import (BaseAgent, action_dict, move, TIMEOUT)
 from func_timeout import func_set_timeout
+import json, pickle
+import numpy as np
+
 ##################################################################################
 # Here is a demo agent.                                                          #
 # You can implement any helper functions.                                        #
@@ -48,12 +51,6 @@ class MyAgent(BaseAgent):
         global p1_changed
         
         if self.env.env_name == "small":
-            """
-            if self.name == "p1":
-                best_action = small_p1[game_state['p1']]
-            else:
-                best_action = small_p2[game_state['p2']]
-            """
             
             action = {
                 'p1': small_p1[game_state['p1']],
@@ -61,7 +58,6 @@ class MyAgent(BaseAgent):
                 }
             if self.name == 'p1':
                 # Reset p1_changed
-                #global p1_changed
                 p1_changed = False
             
             # if p1 has changed to avoid conflict, p2 no need change
@@ -77,7 +73,6 @@ class MyAgent(BaseAgent):
                 }
             if self.name == 'p1':
                 # Reset p1_changed
-                #global p1_changed
                 p1_changed = False
             
             # if p1 has changed to avoid conflict, p2 no need change
@@ -85,9 +80,73 @@ class MyAgent(BaseAgent):
                 action = conflict_avoid(game_state, action, avai_actions, self.name)
                 
             best_action = action[self.name]
-            
-            
+        
         return best_action
+
+    def large_get_action(self, game_state, data):
+        # Step 1. figure out what is accessible
+        #obs = self.observe(game_state)
+        avai_actions = self.get_avai_actions(game_state)
+        goal = self.env.get_goals()[self.name]
+        print(f'game_state: {game_state}')
+        if self.env.env_name == 'large':
+            if self.name == 'p1':
+                if data.get(game_state['p1']):
+                    if np.random.rand() > 0.2:
+                        best_action = data[game_state['p1']]
+                    else:
+                        #best_action = avai_actions[np.random.randint(len(avai_actions))]
+                        best_action = random_move(game_state['p1'], goal, avai_actions)
+                else:
+                    #best_action = avai_actions[np.random.randint(len(avai_actions))]
+                    best_action = random_move(game_state['p1'], goal, avai_actions)
+            elif self.name == 'p2':
+                if data.get(game_state['p2']):
+                    if np.random.rand() > 0.2:
+                        best_action = data[game_state['p2']]
+                    else:
+                        #best_action = avai_actions[np.random.randint(len(avai_actions))]
+                        best_action = random_move(game_state['p2'], goal, avai_actions)
+                else:
+                    #best_action = avai_actions[np.random.randint(len(avai_actions))]
+                    best_action = random_move(game_state['p2'], goal, avai_actions)
+    
+        return best_action
+    
+def random_move(state, goal, avai_actions):
+    #state = game_state[self.name]
+    #goal = self.env.get_goals()[self.name]
+    #avai_actions = self.get_avai_actions(game_state)
+    diff_x = goal[0] - state[0]
+    x = 'nil'
+    if diff_x > 0:
+        x = 'down'
+    else:
+        x = 'up'
+    diff_y = goal[1] - state[1]
+    y = 'nil'
+    if diff_y > 0:
+        y = 'right'
+    else:
+        y = 'left'
+    r = np.random.rand()
+    action = 'nil'
+    if abs(diff_x) > abs(diff_y):
+        if (x in avai_actions) and r > 0.7:
+            action = 'down' if diff_x > 0 else 'up'
+        elif (y in avai_actions) and r > 0.5:
+            action = 'right' if diff_y > 0 else 'left'
+        else:
+            action = avai_actions[np.random.randint(len(avai_actions))]
+    else:
+        if (y in avai_actions) and r > 0.7:
+            action = 'right' if diff_y > 0 else 'left'
+        elif (x in avai_actions) and r > 0.5:
+            action = 'down' if diff_x > 0 else 'up'
+        else:
+            action = avai_actions[np.random.randint(len(avai_actions))]
+    return action
+            
 
 def conflict_check(game_state, action):
     # game_state dict and action dict
@@ -102,12 +161,14 @@ def conflict_check(game_state, action):
 def conflict_avoid(game_state, action, avai_actions, name):
     #game_state dict, action dict, agent's avai_actions and agent's name
     # return alternative action with no conflict or return same action
+    global p1_changed
     temp_action = action
     for act in avai_actions:
+        if(act == 'nil'):
+            continue
         temp_action[name] = act
         if (not conflict_check(game_state, temp_action)):
             if (name =='p1'):
-                global p1_changed 
                 p1_changed = True
             return temp_action
     return action
@@ -118,7 +179,6 @@ def deadlock_check(prev, curr):
     # previous state and current state
     if prev == curr:
         return True
-
 
 
 small_p1 = {

@@ -1,14 +1,40 @@
 from agent import MyAgent
-from game import Env, Game
+from rl_game import Env, Game
 from animator import Animation
 
 import argparse
 import os
 import sys
-from copy import deepcopy
 
 import numpy as np
 
+####
+i = 0
+
+class Args():
+    def __init__(self):
+        self.agents = ['p1', 'p2']
+        self.map = 'large'
+        self.goals = {'p1': (150, 125), 'p2': (100, 175)}
+        self.vis = False
+        self.eval = False
+        self.save = None
+
+def get_starts_rl(agents):
+    # initial states for agents
+    global i
+    # Round Number
+    if i > 10:
+        print('Program terminates')
+        for a in agents:
+            a.export_data()
+        return None
+    starts = {'p1': (149, 124), 'p2': (103, 172)}
+    print(f'Round No. : {i}')
+    i += 1
+    return starts
+
+####
 
 def parse_map_from_file(map_config):
     PREFIX = 'maps/'
@@ -43,6 +69,7 @@ def parse_goals(goals):
 
 
 def get_args():
+    """
     parser = argparse.ArgumentParser(
         description='Multi-Agent Path Finding Term Project.'
     )
@@ -62,11 +89,12 @@ def get_args():
                         help='Do evaluation')
 
     args = parser.parse_args()
-
+    """
+    args = Args()
     map_name = args.map
     args.map = parse_map_from_file(args.map)
 
-    args.goals = parse_goals(args.goals)
+    #args.goals = parse_goals(args.goals)
 
     return args, map_name
 
@@ -92,6 +120,8 @@ def get_starts(agents):
 
 if __name__ == '__main__':
     args, map_name = get_args()
+    max_score_p1 = -7
+    max_score_p2 = -3
 
     if not args.eval:
         show_args(args)
@@ -100,18 +130,23 @@ if __name__ == '__main__':
 
         agents = []
         for name in args.agents:
-            agents.append(MyAgent(name, deepcopy(env)))
+            agents.append(MyAgent(name, env))
 
-        starts = get_starts(args.agents)
+        #starts = get_starts(args.agents)
+        starts = get_starts_rl(args.agents)
 
         while starts:
             print('\nSTARTS:')
             print(starts)
             print('-------------\n')
 
-            game = Game(starts, agents, deepcopy(env))
-            history, score = game.run()
+            game = Game(starts, agents, env)
+            history, score, max_score_p1, max_score_p2 = game.run(max_score_p1, max_score_p2)
             print(f'==> Score: {score}\n')
+            #if(score > max_score):
+            #    max_score = score
+            print(f'==> p1 Max Score: {max_score_p1}\n')
+            print(f'==> p2 Max Score: {max_score_p2}\n')
 
             if args.vis:
                 animator = Animation(args.agents,
@@ -124,7 +159,7 @@ if __name__ == '__main__':
                     animator.save(file_name=f'recording/{args.save}',
                                   speed=100)
 
-            starts = get_starts(args.agents)
+            starts = get_starts_rl(args.agents)
 
     else:
         stdout_fd = sys.stdout
@@ -140,7 +175,7 @@ if __name__ == '__main__':
         env = Env(args.goals, args.map, map_name)
         agents = []
         for name in args.agents:
-            agents.append(MyAgent(name, deepcopy(env)))
+            agents.append(MyAgent(name, env))
 
         num_rounds = NUM_ROUNDS[map_name]
         score_list = []
@@ -152,12 +187,11 @@ if __name__ == '__main__':
             # print(initials)
             invalid = False
             for pos in initials:
-                # print(tuple(pos), args.map[tuple(pos)])
+                # print(args.map[tuple(pos)])
                 if args.map[tuple(pos)] == 1:
                     invalid = True
                     break
-                if map_name == 'large' and pos[0] > 110 and pos[1] < 75:
-                    invalid = True
+                if map_name == 'large' and pos[0] > 110 and pos[1] < 50:
                     break
             if invalid:
                 continue
