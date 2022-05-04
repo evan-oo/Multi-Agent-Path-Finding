@@ -80,6 +80,14 @@ class MyAgent(BaseAgent):
                 action = conflict_avoid(game_state, action, avai_actions, self.name)
                 
             best_action = action[self.name]
+        elif self.env.env_name == 'large':
+            search_large = get_large_data()
+            if search_large[self.name].get(game_state[self.name]):
+                best_action = search_large[self.name][game_state[self.name]]
+                
+            
+            
+            #best_action = action[self.name]
         
         return best_action
 
@@ -113,10 +121,12 @@ class MyAgent(BaseAgent):
     
         return best_action
     
+    
 def random_move(state, goal, avai_actions):
     #state = game_state[self.name]
     #goal = self.env.get_goals()[self.name]
     #avai_actions = self.get_avai_actions(game_state)
+    avai_actions.remove('nil')
     diff_x = goal[0] - state[0]
     x = 'nil'
     if diff_x > 0:
@@ -132,16 +142,16 @@ def random_move(state, goal, avai_actions):
     r = np.random.rand()
     action = 'nil'
     if abs(diff_x) > abs(diff_y):
-        if (x in avai_actions) and r > 0.7:
+        if (x in avai_actions) and r > 0.8:
             action = 'down' if diff_x > 0 else 'up'
-        elif (y in avai_actions) and r > 0.5:
+        elif (y in avai_actions) and r > 0.7:
             action = 'right' if diff_y > 0 else 'left'
         else:
             action = avai_actions[np.random.randint(len(avai_actions))]
     else:
-        if (y in avai_actions) and r > 0.7:
+        if (y in avai_actions) and r > 0.8:
             action = 'right' if diff_y > 0 else 'left'
-        elif (x in avai_actions) and r > 0.5:
+        elif (x in avai_actions) and r > 0.7:
             action = 'down' if diff_x > 0 else 'up'
         else:
             action = avai_actions[np.random.randint(len(avai_actions))]
@@ -179,6 +189,16 @@ def deadlock_check(prev, curr):
     # previous state and current state
     if prev == curr:
         return True
+    
+def get_large_data():
+    try:
+        
+        f = open('./data/search_large.txt', 'rb')
+        data = pickle.load(f)
+        f.close()
+        return data
+    except:
+        print("Export went wrong")
 
 
 small_p1 = {

@@ -27,10 +27,10 @@ def get_starts_rl(agents):
     # initial states for agents
     global i
     # Round Number
-    if i > 10:
+    if i > 2000:
         print('Program terminates')
         return None, None, None
-    starts = {'p1': (173, 136), 'p2': (88, 185)}
+    starts = {'p1': (137, 24), 'p2': (106, 197)}
     print(f'Round No. : {i}')
     p1_dict, p2_dict = import_data()
     i += 1
@@ -48,6 +48,16 @@ def import_data():
     except:
         print("import_data went wrong")
 
+def gen_state(goal, x, y):
+    #goal = {'p1': (150, 125), 'p2': (100, 175)}
+    state_list = list()
+    for i in range(x):
+        for j in range(y):
+            y = y - j/2
+            s = tuple(np.add(goal, ((x+i), y)))
+            state_list.append(s)
+    return state_list
+    
 
 ####
 
@@ -136,8 +146,8 @@ def get_starts(agents):
 
 if __name__ == '__main__':
     args, map_name = get_args()
-    max_score_p1 = 89.11819887429644
-    max_score_p2 = 88.74296435272045
+    max_score_p1 = -1000
+    max_score_p2 = -1000
 
     if not args.eval:
         show_args(args)

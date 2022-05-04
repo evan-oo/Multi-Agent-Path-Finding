@@ -1,21 +1,28 @@
 from agent import MyAgent
-from rl_game import Env, Game
+#from game import Env, Game
+#from rl_game import Env, 
+from game import Env
 from animator import Animation
 
 import argparse
 import os
 import sys
+from copy import deepcopy
 
 import numpy as np
 
 ####
+from base import move
+import pickle
 i = 0
 
 class Args():
     def __init__(self):
-        self.agents = ['p1', 'p2']
+        #self.agents = ['p1', 'p2']
+        self.agents = ['p1']
         self.map = 'large'
-        self.goals = {'p1': (150, 125), 'p2': (100, 175)}
+        #self.goals = {'p1': (150, 125), 'p2': (100, 175)}
+        self.goals = {'p1': (150, 125)}
         self.vis = False
         self.eval = False
         self.save = None
@@ -24,17 +31,79 @@ def get_starts_rl(agents):
     # initial states for agents
     global i
     # Round Number
-    if i > 10:
+    if i > 1000:
         print('Program terminates')
-        for a in agents:
-            a.export_data()
-        return None
-    starts = {'p1': (149, 124), 'p2': (103, 172)}
+        return None, None, None
+    starts = {'p1': (96, 109), 'p2': (79, 189)}
     print(f'Round No. : {i}')
+    p1_dict, p2_dict = import_data()
     i += 1
-    return starts
+    return starts, p1_dict, p2_dict
 
-####
+def import_data():
+    try:
+        f1 = open('./data/large_p1.txt', 'rb')
+        p1_dict = pickle.load(f1)
+        f1.close()
+        f2 = open('./data/large_p2.txt', 'rb')
+        p2_dict = pickle.load(f2)
+        f2.close()
+        return p1_dict, p2_dict
+    except:
+        print("import_data went wrong")
+
+
+search_large = {
+    'p1':{
+        (150, 125): 'nil'
+    },
+    'p2': {
+        (100, 175): 'nil'
+    }
+}
+
+def search(agent, state):
+    if agent.env.is_feasible(state, state):
+        state_list = list()
+        avai_actions = agent.get_avai_actions(state)
+        avai_actions.remove('nil')
+        for act in avai_actions:
+            if act == 'up':
+                if search_large[agent.name].get(move(state[agent.name], 'up')):
+                    continue
+                else:
+                    search_large[agent.name][move(state[agent.name], 'up')] = 'down'
+                    state_list.append(move(state[agent.name], 'up'))
+            elif act == 'down':
+                if search_large[agent.name].get(move(state[agent.name], 'down')):
+                    continue
+                else:
+                    search_large[agent.name][move(state[agent.name], 'down')] = 'up'
+                    state_list.append(move(state[agent.name], 'down'))
+            elif act == 'left':
+                if search_large[agent.name].get(move(state[agent.name], 'left')):
+                    continue
+                else:
+                    search_large[agent.name][move(state[agent.name], 'left')] = 'right'
+                    state_list.append(move(state[agent.name], 'left'))
+            elif act == 'right':
+                if search_large[agent.name].get(move(state[agent.name], 'right')):
+                    continue
+                else:
+                    search_large[agent.name][move(state[agent.name], 'right')] = 'left'
+                    state_list.append(move(state[agent.name], 'right'))
+        #return state_list
+    return state_list
+                    
+def export_data(data):
+    try:
+        f = open('./data/search_large.txt', 'wb')
+        pickle.dump(data, f)
+        f.close()
+    except:
+        print("Export went wrong")
+####    
+
 
 def parse_map_from_file(map_config):
     PREFIX = 'maps/'
@@ -120,31 +189,51 @@ def get_starts(agents):
 
 if __name__ == '__main__':
     args, map_name = get_args()
-    max_score_p1 = -7
-    max_score_p2 = -3
+    max_score_p1 = 0
+    max_score_p2 = 0
+    initial = {'p1': (150, 125), 'p2': (100, 175)}
+    end = {'p1': (194, 174), 'p2': (132, 227)}
 
     if not args.eval:
         show_args(args)
 
         env = Env(args.goals, args.map, map_name)
+        
 
         agents = []
         for name in args.agents:
-            agents.append(MyAgent(name, env))
+            agents.append(MyAgent(name, deepcopy(env)))   
 
-        #starts = get_starts(args.agents)
-        starts = get_starts_rl(args.agents)
+        for agent in agents:
+            #print('fuck you') 
+            state_list = search(agent, agent.env.get_goals())
+            temp_list = state_list.copy()
+            #print(f'temp_list: {temp_list}')
+            while temp_list:
+                temp_list.clear()
+                for i in state_list:
+                    l = search(agent,{'p1': i})
+                    #print(f'l: {l}')
+                    temp_list.extend(l)
+                #print(f'temp_list: {temp_list}')
+                state_list.clear()
+                state_list = temp_list.copy()
+            
+        
+        export_data(search_large)
+
+
+        """
+        starts, large_p1, large_p2 = get_starts_rl(args.agents)
 
         while starts:
             print('\nSTARTS:')
             print(starts)
             print('-------------\n')
 
-            game = Game(starts, agents, env)
-            history, score, max_score_p1, max_score_p2 = game.run(max_score_p1, max_score_p2)
+            game = Game(starts, agents, deepcopy(env))
+            history, score, max_score_p1, max_score_p2 = game.run(max_score_p1, max_score_p2, large_p1, large_p2)
             print(f'==> Score: {score}\n')
-            #if(score > max_score):
-            #    max_score = score
             print(f'==> p1 Max Score: {max_score_p1}\n')
             print(f'==> p2 Max Score: {max_score_p2}\n')
 
@@ -159,9 +248,11 @@ if __name__ == '__main__':
                     animator.save(file_name=f'recording/{args.save}',
                                   speed=100)
 
-            starts = get_starts_rl(args.agents)
-
+            starts, large_p1, large_p2 = get_starts_rl(args.agents)
+        """
     else:
+        print('error')
+        """
         stdout_fd = sys.stdout
         sys.stdout = open("eval.log", "w")
 
@@ -175,7 +266,7 @@ if __name__ == '__main__':
         env = Env(args.goals, args.map, map_name)
         agents = []
         for name in args.agents:
-            agents.append(MyAgent(name, env))
+            agents.append(MyAgent(name, deepcopy(env)))
 
         num_rounds = NUM_ROUNDS[map_name]
         score_list = []
@@ -187,11 +278,12 @@ if __name__ == '__main__':
             # print(initials)
             invalid = False
             for pos in initials:
-                # print(args.map[tuple(pos)])
+                # print(tuple(pos), args.map[tuple(pos)])
                 if args.map[tuple(pos)] == 1:
                     invalid = True
                     break
-                if map_name == 'large' and pos[0] > 110 and pos[1] < 50:
+                if map_name == 'large' and pos[0] > 110 and pos[1] < 75:
+                    invalid = True
                     break
             if invalid:
                 continue
@@ -207,3 +299,4 @@ if __name__ == '__main__':
         sys.stdout = stdout_fd
         print(score_list)
         print(np.mean(score_list))
+        """
