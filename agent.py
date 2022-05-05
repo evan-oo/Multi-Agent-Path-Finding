@@ -84,10 +84,6 @@ class MyAgent(BaseAgent):
             search_large = get_large_data()
             if search_large[self.name].get(game_state[self.name]):
                 best_action = search_large[self.name][game_state[self.name]]
-                
-            
-            
-            #best_action = action[self.name]
         
         return best_action
 
@@ -198,7 +194,7 @@ def get_large_data():
         f.close()
         return data
     except:
-        print("Export went wrong")
+        print("Get went wrong")
 
 
 small_p1 = {

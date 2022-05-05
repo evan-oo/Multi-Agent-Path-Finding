@@ -19,10 +19,10 @@ i = 0
 class Args():
     def __init__(self):
         #self.agents = ['p1', 'p2']
-        self.agents = ['p1']
+        self.agents = ['p2']
         self.map = 'large'
         #self.goals = {'p1': (150, 125), 'p2': (100, 175)}
-        self.goals = {'p1': (150, 125)}
+        self.goals = {'p2': (100, 175)}
         self.vis = False
         self.eval = False
         self.save = None
@@ -42,17 +42,14 @@ def get_starts_rl(agents):
 
 def import_data():
     try:
-        f1 = open('./data/large_p1.txt', 'rb')
-        p1_dict = pickle.load(f1)
+        f1 = open('./data/search_large.txt', 'rb')
+        search_large = pickle.load(f1)
         f1.close()
-        f2 = open('./data/large_p2.txt', 'rb')
-        p2_dict = pickle.load(f2)
-        f2.close()
-        return p1_dict, p2_dict
+        return search_large
     except:
         print("import_data went wrong")
 
-
+'''
 search_large = {
     'p1':{
         (150, 125): 'nil'
@@ -61,7 +58,7 @@ search_large = {
         (100, 175): 'nil'
     }
 }
-
+'''
 def search(agent, state):
     if agent.env.is_feasible(state, state):
         state_list = list()
@@ -186,13 +183,14 @@ def get_starts(agents):
         starts[name] = eval(char.replace(' ', ','))
     return starts
 
+search_large = import_data()
 
 if __name__ == '__main__':
     args, map_name = get_args()
     max_score_p1 = 0
     max_score_p2 = 0
-    initial = {'p1': (150, 125), 'p2': (100, 175)}
-    end = {'p1': (194, 174), 'p2': (132, 227)}
+    #search_large = import_data()
+    
 
     if not args.eval:
         show_args(args)
@@ -212,7 +210,7 @@ if __name__ == '__main__':
             while temp_list:
                 temp_list.clear()
                 for i in state_list:
-                    l = search(agent,{'p1': i})
+                    l = search(agent,{'p2': i})
                     #print(f'l: {l}')
                     temp_list.extend(l)
                 #print(f'temp_list: {temp_list}')
